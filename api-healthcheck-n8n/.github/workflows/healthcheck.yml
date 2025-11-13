@@ -1,0 +1,54 @@
+name: API Healthcheck
+
+# roda manualmente, em pushes na branch main e agendado (ex.: todo dia às 09:00 UTC)
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 9 * * *' # todo dia às 09:00 UTC — ajuste conforme quiser
+
+jobs:
+  run-healthcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run health checks
+        id: run_tests
+        run: |
+          npm run check
+        continue-on-error: true
+
+      - name: Upload test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: healthcheck-output
+          path: |
+            ./tests/**/*
+            ./endpoints.json
+
+      - name: Create issue if healthcheck failed
+        if: ${{ failure() }}
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const repo = context.repo;
+            const results = `Healthcheck run failed in workflow ${context.workflow} on ${new Date().toISOString()}. See logs and artifact "healthcheck-output".`;
+            await github.rest.issues.create({
+              owner: repo.owner,
+              repo: repo.repo,
+              title: "🚨 API Healthcheck failed",
+              body: results
+            });
