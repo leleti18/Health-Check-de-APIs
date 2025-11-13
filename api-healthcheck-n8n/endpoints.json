@@ -1,0 +1,10 @@
+[
+  {
+    "url": "https://httpbin.org/status/200",
+    "name": "OK endpoint"
+  },
+  {
+    "url": "https://httpbin.org/status/500",
+    "name": "Broken endpoint"
+  }
+]

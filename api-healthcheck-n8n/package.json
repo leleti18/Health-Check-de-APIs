@@ -1,0 +1,11 @@
+{
+  "name": "api-healthcheck-n8n",
+  "version": "1.0.0",
+  "scripts": {
+    "check": "node tests/check_endpoints.js",
+    "test": "npm run check"
+  },
+  "dependencies": {
+    "axios": "^1.4.0"
+  }
+}

@@ -1,0 +1,156 @@
+{
+  "name": "API Healthcheck - Cron + Alerts",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "hour": "0",
+              "minute": "*/5"
+            }
+          ]
+        }
+      },
+      "id": "1",
+      "name": "Cron Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        250,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "GET",
+        "url": "={{$json[\"url\"]}}",
+        "responseFormat": "string",
+        "options": {}
+      },
+      "id": "2",
+      "name": "Check API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        500,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$node[\"Check API\"].json[\"statusCode\"]}}",
+              "operation": "notEqual",
+              "value2": 200
+            }
+          ]
+        }
+      },
+      "id": "3",
+      "name": "IF - Unhealthy?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        750,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "n8n@example.com",
+        "toEmail": "={{$json[\"alert_email\"] || \"you@example.com\"}}",
+        "subject": "ALERT: API healthcheck failed for {{$json[\"url\"]}}",
+        "text": "The API at {{$json[\"url\"]}} returned HTTP code {{$node[\"Check API\"].json[\"statusCode\"]}} - please check."
+      },
+      "id": "4",
+      "name": "Send Email (placeholder)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "=@params.chatId || 'YOUR_CHAT_ID'",
+        "text": "\ud83d\udea8 API healthcheck alert: {{$json[\"url\"]}} returned status {{$node[\"Check API\"].json[\"statusCode\"]}}"
+      },
+      "id": "5",
+      "name": "Telegram (placeholder)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{ json: { targets: [ { url: 'https://httpbin.org/status/200', alert_email: '' }, { url: 'https://httpbin.org/status/500', alert_email: '' } ] } }]"
+      },
+      "id": "6",
+      "name": "Load Targets",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        380,
+        80
+      ]
+    }
+  ],
+  "connections": {
+    "Cron Trigger": {
+      "main": [
+        [
+          {
+            "node": "Load Targets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Targets": {
+      "main": [
+        [
+          {
+            "node": "Check API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check API": {
+      "main": [
+        [
+          {
+            "node": "IF - Unhealthy?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Unhealthy?": {
+      "main": [
+        [
+          {
+            "node": "Send Email (placeholder)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram (placeholder)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
